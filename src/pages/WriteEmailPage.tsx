@@ -136,7 +136,7 @@ export default function WriteEmailPage() {
                   <div className="p-2">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 py-1 font-semibold">Employees</p>
                     {employees.map(c => (
-                      <ContactRow key={c.id} contact={c} onSelect={() => { setSelectedRecipients(prev => [...prev, c]); setRecipientSearch(''); }} />
+                      <ContactRow key={c.id} contact={c} onSelect={() => { setSelectedRecipients(prev => [...prev, c]); setRecipientSearch(''); setShowDropdown(false); }} />
                     ))}
                   </div>
                 )}
@@ -144,7 +144,7 @@ export default function WriteEmailPage() {
                   <div className="p-2 border-t border-border">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 py-1 font-semibold">Clients & Vendors</p>
                     {vendorsClients.map(c => (
-                      <ContactRow key={c.id} contact={c} onSelect={() => { setSelectedRecipients(prev => [...prev, c]); setRecipientSearch(''); }} />
+                      <ContactRow key={c.id} contact={c} onSelect={() => { setSelectedRecipients(prev => [...prev, c]); setRecipientSearch(''); setShowDropdown(false); }} />
                     ))}
                   </div>
                 )}
