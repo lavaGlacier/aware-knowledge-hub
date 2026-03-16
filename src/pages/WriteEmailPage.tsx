@@ -69,14 +69,41 @@ export default function WriteEmailPage() {
     setGenerating(true);
     const recipientNames = selectedRecipients.map(r => r.name).join(', ');
     setTimeout(() => {
-      const toneMap = {
-        professional: 'clear and professional',
-        warm: 'warm yet direct',
-        formal: 'formal and structured',
+      const greetingMap = {
+        professional: `Dear ${recipientNames || 'Team'},`,
+        warm: `Hi ${recipientNames ? recipientNames.split(',')[0].trim().split(' ')[0] : 'there'},`,
+        formal: `Dear ${recipientNames || 'Sir/Madam'},`,
       };
-      setDraft(
-        `Dear ${recipientNames || 'Team'},\n\nI hope this message finds you well.\n\n${context ? `Regarding ${context.slice(0, 80).toLowerCase()}, I wanted to reach out to discuss the next steps.` : 'I wanted to reach out regarding an important matter.'}\n\nBased on our current agreements and processes, I believe we should schedule a brief meeting to align on priorities and ensure we're tracking against our commitments.\n\nPlease let me know your availability this week, and I'll send over a calendar invite.\n\nBest regards`
-      );
+      const closingMap = {
+        professional: 'Best regards',
+        warm: 'Thanks so much — speak soon!',
+        formal: 'Yours sincerely',
+      };
+      const greeting = greetingMap[tone];
+      const closing = closingMap[tone];
+
+      let body = '';
+      if (context) {
+        const sentences = context.trim().split(/[.!?]+/).filter(Boolean);
+        const subject = sentences[0]?.trim() || context.trim();
+        const details = sentences.slice(1).join('. ').trim();
+
+        if (tone === 'warm') {
+          body = `I wanted to quickly get in touch about ${subject.toLowerCase()}.\n\n${details ? `Here's some context: ${details}.\n\n` : ''}Could we find a time to chat about this? Happy to jump on a quick call whenever suits you.`;
+        } else if (tone === 'formal') {
+          body = `I am writing to you regarding ${subject.toLowerCase()}.\n\n${details ? `For your reference: ${details}.\n\n` : ''}I would appreciate the opportunity to discuss this matter at your earliest convenience. Please advise on your availability and I shall arrange accordingly.`;
+        } else {
+          body = `I'm reaching out regarding ${subject.toLowerCase()}.\n\n${details ? `Some additional context: ${details}.\n\n` : ''}I'd like to align on next steps. Could you let me know your availability this week so we can schedule a brief discussion?`;
+        }
+      } else {
+        body = tone === 'warm'
+          ? "Just wanted to check in and see how things are going on your end. Let me know if there's anything you need from us!"
+          : tone === 'formal'
+          ? "I am writing to follow up on our recent correspondence. I would be grateful for an update at your earliest convenience."
+          : "I wanted to reach out to touch base and discuss a few items. Please let me know your availability for a brief call this week.";
+      }
+
+      setDraft(`${greeting}\n\n${body}\n\n${closing}`);
       setGenerating(false);
     }, 2000);
   };
@@ -136,7 +163,7 @@ export default function WriteEmailPage() {
                   <div className="p-2">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 py-1 font-semibold">Employees</p>
                     {employees.map(c => (
-                      <ContactRow key={c.id} contact={c} onSelect={() => { setSelectedRecipients(prev => [...prev, c]); setRecipientSearch(''); }} />
+                      <ContactRow key={c.id} contact={c} onSelect={() => { setSelectedRecipients(prev => [...prev, c]); setRecipientSearch(''); setShowDropdown(false); }} />
                     ))}
                   </div>
                 )}
@@ -144,7 +171,7 @@ export default function WriteEmailPage() {
                   <div className="p-2 border-t border-border">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 py-1 font-semibold">Clients & Vendors</p>
                     {vendorsClients.map(c => (
-                      <ContactRow key={c.id} contact={c} onSelect={() => { setSelectedRecipients(prev => [...prev, c]); setRecipientSearch(''); }} />
+                      <ContactRow key={c.id} contact={c} onSelect={() => { setSelectedRecipients(prev => [...prev, c]); setRecipientSearch(''); setShowDropdown(false); }} />
                     ))}
                   </div>
                 )}

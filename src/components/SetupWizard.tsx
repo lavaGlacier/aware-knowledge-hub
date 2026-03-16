@@ -173,7 +173,7 @@ export default function SetupWizard() {
             {/* Upload area */}
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="group relative border-2 border-dashed border-border rounded-xl p-12 transition-colors hover:border-primary/50 flex flex-col items-center justify-center gap-4 bg-muted/30 cursor-pointer"
+              className="group border-2 border-dashed border-border rounded-xl p-12 transition-colors hover:border-primary/50 flex flex-col items-center justify-center gap-4 bg-muted/30 cursor-pointer"
             >
               {uploading ? (
                 <div className="flex flex-col items-center gap-3">
@@ -189,15 +189,15 @@ export default function SetupWizard() {
                   </div>
                 </>
               )}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={step.accept}
-                multiple={step.multiple}
-                onChange={handleFileUpload}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-              />
             </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={step.accept}
+              multiple={step.multiple}
+              onChange={handleFileUpload}
+              className="hidden"
+            />
 
             {/* Uploaded files */}
             {filesForStep.length > 0 && (

@@ -1,11 +1,38 @@
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { AlertTriangle, Upload } from 'lucide-react';
+import { AlertTriangle, Upload, FileText, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
 
 export default function KnowledgeGapsPage() {
-  const { knowledgeGaps } = useApp();
+  const { knowledgeGaps, addDocument, resolveKnowledgeGap } = useApp();
+  const [uploading, setUploading] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    setTimeout(() => {
+      Array.from(files).forEach(file => {
+        addDocument({
+          id: crypto.randomUUID(),
+          name: file.name,
+          category: 'processes',
+          uploadDate: new Date().toISOString(),
+          size: file.size,
+        });
+        setUploadedFileName(file.name);
+      });
+      // Resolve all unanswered gaps
+      knowledgeGaps.filter(g => g.status === 'unanswered').forEach(g => resolveKnowledgeGap(g.id));
+      setUploading(false);
+      setTimeout(() => setUploadedFileName(''), 3000);
+    }, 1200);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   return (
     <div className="space-y-6">
@@ -14,10 +41,11 @@ export default function KnowledgeGapsPage() {
           <h1 className="text-xl font-semibold tracking-tight">Knowledge Gaps</h1>
           <p className="text-sm text-muted-foreground">Questions AWARE couldn't answer from your documents.</p>
         </div>
-        <Button variant="outline" size="sm" className="text-xs shrink-0">
+        <Button variant="outline" size="sm" className="text-xs shrink-0" onClick={() => fileInputRef.current?.click()}>
           <Upload className="w-3 h-3 mr-1.5" />
-          Upload to resolve a gap
+          {uploading ? 'Uploading...' : 'Upload to resolve a gap'}
         </Button>
+        <input ref={fileInputRef} type="file" accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg" multiple onChange={handleUpload} className="hidden" />
       </div>
 
       {/* Info card */}
