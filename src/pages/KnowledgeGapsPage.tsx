@@ -41,10 +41,11 @@ export default function KnowledgeGapsPage() {
           <h1 className="text-xl font-semibold tracking-tight">Knowledge Gaps</h1>
           <p className="text-sm text-muted-foreground">Questions AWARE couldn't answer from your documents.</p>
         </div>
-        <Button variant="outline" size="sm" className="text-xs shrink-0">
+        <Button variant="outline" size="sm" className="text-xs shrink-0" onClick={() => fileInputRef.current?.click()}>
           <Upload className="w-3 h-3 mr-1.5" />
-          Upload to resolve a gap
+          {uploading ? 'Uploading...' : 'Upload to resolve a gap'}
         </Button>
+        <input ref={fileInputRef} type="file" accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg" multiple onChange={handleUpload} className="hidden" />
       </div>
 
       {/* Info card */}
