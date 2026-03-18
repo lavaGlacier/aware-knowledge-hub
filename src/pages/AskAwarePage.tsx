@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button';
 import { AwareLogo } from '@/components/AwareLogo';
 import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
 const starterQuestions = [
   'What is our leave policy?',
@@ -13,42 +16,91 @@ const starterQuestions = [
   "What's the onboarding checklist for new clients?",
 ];
 
-const mockResponses: Record<string, { answer: string; source: string; confidence: 'high' | 'amber' | 'red' }> = {
-  'leave': {
-    answer: 'According to your HR policy, all full-time employees are entitled to 25 days of annual leave per calendar year, plus public holidays. Leave requests should be submitted at least 2 weeks in advance through the HR portal. Unused leave can be carried over up to 5 days into the next year.',
-    source: 'HR Policy Document',
-    confidence: 'high',
-  },
-  'acme': {
-    answer: 'Based on the Acme Corp SOW, you committed to a 24-hour response time for Priority 1 tickets and 48 hours for Priority 2. The contract also includes monthly reporting and a quarterly business review. The engagement runs for 12 months with an option to extend.',
-    source: 'Client SOW — Acme Corp',
-    confidence: 'high',
-  },
-  'billing': {
-    answer: 'Your process documents mention that billing issues should first go to the Finance team (Priya Patel). If unresolved within 48 hours, escalate to the Head of Operations. However, I noticed the escalation matrix doesn\'t specify an exact contact for the second level.',
-    source: 'Internal Processes — Escalation Guide',
-    confidence: 'amber',
-  },
-  'onboarding': {
-    answer: 'The client onboarding checklist includes: 1) Signed contract received and filed, 2) Client added to CRM and project tools, 3) Kickoff meeting scheduled, 4) Project team assigned and introduced, 5) Communication channels set up, 6) Initial requirements document drafted, 7) First milestone and timeline agreed.',
-    source: 'Checklists — New Client Onboarding',
-    confidence: 'high',
-  },
-};
+async function streamChat({
+  messages,
+  onDelta,
+  onDone,
+}: {
+  messages: { role: string; content: string }[];
+  onDelta: (text: string) => void;
+  onDone: () => void;
+}) {
+  const resp = await fetch(CHAT_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    },
+    body: JSON.stringify({ messages }),
+  });
 
-function getResponse(question: string) {
-  const q = question.toLowerCase();
-  if (q.includes('leave') || q.includes('holiday') || q.includes('vacation')) return mockResponses['leave'];
-  if (q.includes('acme') || q.includes('contract') || q.includes('commit')) return mockResponses['acme'];
-  if (q.includes('billing') || q.includes('escalat')) return mockResponses['billing'];
-  if (q.includes('onboarding') || q.includes('checklist') || q.includes('new client')) return mockResponses['onboarding'];
-  return null;
+  if (!resp.ok) {
+    const data = await resp.json().catch(() => ({}));
+    throw new Error(data.error || `Request failed (${resp.status})`);
+  }
+
+  if (!resp.body) throw new Error('No response body');
+
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let textBuffer = '';
+  let streamDone = false;
+
+  while (!streamDone) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    textBuffer += decoder.decode(value, { stream: true });
+
+    let newlineIndex: number;
+    while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
+      let line = textBuffer.slice(0, newlineIndex);
+      textBuffer = textBuffer.slice(newlineIndex + 1);
+
+      if (line.endsWith('\r')) line = line.slice(0, -1);
+      if (line.startsWith(':') || line.trim() === '') continue;
+      if (!line.startsWith('data: ')) continue;
+
+      const jsonStr = line.slice(6).trim();
+      if (jsonStr === '[DONE]') {
+        streamDone = true;
+        break;
+      }
+
+      try {
+        const parsed = JSON.parse(jsonStr);
+        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+        if (content) onDelta(content);
+      } catch {
+        textBuffer = line + '\n' + textBuffer;
+        break;
+      }
+    }
+  }
+
+  // Flush remaining buffer
+  if (textBuffer.trim()) {
+    for (let raw of textBuffer.split('\n')) {
+      if (!raw) continue;
+      if (raw.endsWith('\r')) raw = raw.slice(0, -1);
+      if (raw.startsWith(':') || raw.trim() === '') continue;
+      if (!raw.startsWith('data: ')) continue;
+      const jsonStr = raw.slice(6).trim();
+      if (jsonStr === '[DONE]') continue;
+      try {
+        const parsed = JSON.parse(jsonStr);
+        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+        if (content) onDelta(content);
+      } catch { /* ignore */ }
+    }
+  }
+
+  onDone();
 }
 
 export default function AskAwarePage() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const { chatMessages, addChatMessage, addKnowledgeGap } = useApp();
+  const { chatMessages, addChatMessage } = useApp();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const showStarters = chatMessages.length === 0;
 
@@ -56,33 +108,51 @@ export default function AskAwarePage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages]);
 
-  const handleSend = (text?: string) => {
+  const handleSend = async (text?: string) => {
     const question = text || input.trim();
-    if (!question) return;
+    if (!question || isTyping) return;
     setInput('');
 
     addChatMessage({ role: 'user', content: question });
-
     setIsTyping(true);
-    setTimeout(() => {
-      const response = getResponse(question);
-      if (response) {
-        addChatMessage({
-          role: 'assistant',
-          content: response.answer,
-          source: response.source,
-          confidence: response.confidence,
-        });
-      } else {
-        addKnowledgeGap(question);
-        addChatMessage({
-          role: 'assistant',
-          content: "I don't have documented information to answer this. I've logged this as a knowledge gap.",
-          confidence: 'red',
-        });
-      }
+
+    // Build message history for context (last 20 messages)
+    const history = chatMessages.slice(-20).map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+    history.push({ role: 'user', content: question });
+
+    let assistantContent = '';
+
+    try {
+      await streamChat({
+        messages: history,
+        onDelta: (chunk) => {
+          assistantContent += chunk;
+          // We update via a temp mechanism — final message added onDone
+        },
+        onDone: () => {
+          if (assistantContent.trim()) {
+            addChatMessage({
+              role: 'assistant',
+              content: assistantContent,
+              confidence: 'high',
+            });
+          }
+          setIsTyping(false);
+        },
+      });
+    } catch (e: any) {
+      console.error('Chat error:', e);
+      toast.error(e.message || 'Failed to get a response');
+      addChatMessage({
+        role: 'assistant',
+        content: "Sorry, I couldn't process your request right now. Please try again.",
+        confidence: 'red',
+      });
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -110,7 +180,7 @@ export default function AskAwarePage() {
             <div className={cn('max-w-[85%] space-y-2', msg.role === 'user' && 'text-right')}>
               <div
                 className={cn(
-                  'inline-block px-4 py-3 rounded-2xl text-sm leading-relaxed',
+                  'inline-block px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap',
                   msg.role === 'user'
                     ? 'bg-primary text-primary-foreground rounded-tr-none'
                     : msg.confidence === 'red'
@@ -120,13 +190,8 @@ export default function AskAwarePage() {
               >
                 {msg.content}
               </div>
-              {msg.role === 'assistant' && (msg.source || msg.confidence) && (
+              {msg.role === 'assistant' && msg.confidence && (
                 <div className="flex items-center gap-3 pl-1">
-                  {msg.source && (
-                    <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                      Source: <span className="text-foreground">{msg.source}</span>
-                    </span>
-                  )}
                   {msg.confidence && (
                     <div
                       className={cn(
@@ -136,9 +201,9 @@ export default function AskAwarePage() {
                         msg.confidence === 'red' && 'bg-red-50 border-red-200 text-red-700'
                       )}
                     >
-                      {msg.confidence === 'high' && 'High confidence'}
-                      {msg.confidence === 'amber' && 'Verified with caveat'}
-                      {msg.confidence === 'red' && 'Knowledge gap'}
+                      {msg.confidence === 'high' && 'AI Response'}
+                      {msg.confidence === 'amber' && 'Partial answer'}
+                      {msg.confidence === 'red' && 'Error'}
                     </div>
                   )}
                 </div>
@@ -190,14 +255,14 @@ export default function AskAwarePage() {
           />
           <Button
             onClick={() => handleSend()}
-            disabled={!input.trim()}
+            disabled={!input.trim() || isTyping}
             className="h-11 w-11 p-0 bg-primary hover:brightness-95 active:scale-95 transition-all"
           >
             <Send className="w-4 h-4" />
           </Button>
         </div>
         <p className="text-[11px] text-muted-foreground text-center">
-          AWARE only answers from your uploaded documents. It will tell you when it doesn't know.
+          AWARE answers using AI. Responses are generated, not sourced from your documents yet.
         </p>
       </div>
     </div>
