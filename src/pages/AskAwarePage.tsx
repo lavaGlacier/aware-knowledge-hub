@@ -279,7 +279,7 @@ export default function AskAwarePage() {
           </Button>
         </div>
         <p className="text-[11px] text-muted-foreground text-center">
-          AWARE answers using AI. Responses are generated, not sourced from your documents yet.
+          AWARE only answers from your uploaded documents. Questions without matching documents are logged as knowledge gaps.
         </p>
       </div>
     </div>
