@@ -218,9 +218,9 @@ export default function AskAwarePage() {
                         msg.confidence === 'red' && 'bg-red-50 border-red-200 text-red-700'
                       )}
                     >
-                      {msg.confidence === 'high' && 'AI Response'}
-                      {msg.confidence === 'amber' && 'Partial answer'}
-                      {msg.confidence === 'red' && 'Error'}
+                        {msg.confidence === 'high' && 'Verified from documents'}
+                        {msg.confidence === 'amber' && 'Partial answer'}
+                        {msg.confidence === 'red' && 'Not found in documents'}
                     </div>
                   )}
                 </div>
