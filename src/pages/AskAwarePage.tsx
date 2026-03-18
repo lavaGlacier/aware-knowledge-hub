@@ -125,22 +125,37 @@ export default function AskAwarePage() {
     }));
     history.push({ role: 'user', content: question });
 
+    // Build document context from uploaded documents
+    const documentContext = documents.length > 0
+      ? documents.map(d => `Document: "${d.name}" (Category: ${d.category}, Uploaded: ${d.uploadDate})`).join('\n')
+      : '';
+
     let assistantContent = '';
 
     try {
       await streamChat({
         messages: history,
+        documentContext,
         onDelta: (chunk) => {
           assistantContent += chunk;
-          // We update via a temp mechanism — final message added onDone
         },
         onDone: () => {
           if (assistantContent.trim()) {
+            const isNoAnswer = assistantContent.trim().startsWith('NO_ANSWER:');
+            const displayContent = isNoAnswer
+              ? assistantContent.replace(/^NO_ANSWER:\s*/, '').trim()
+              : assistantContent;
+
             addChatMessage({
               role: 'assistant',
-              content: assistantContent,
-              confidence: 'high',
+              content: displayContent,
+              confidence: isNoAnswer ? 'red' : 'high',
             });
+
+            // Auto-log knowledge gap when AI can't answer from documents
+            if (isNoAnswer) {
+              addKnowledgeGap(question);
+            }
           }
           setIsTyping(false);
         },
