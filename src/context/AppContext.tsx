@@ -6,6 +6,7 @@ export interface UploadedDocument {
   category: 'overview' | 'processes' | 'hr' | 'contracts' | 'checklists' | 'style';
   uploadDate: string;
   size: number;
+  content?: string;
 }
 
 export interface Contact {
