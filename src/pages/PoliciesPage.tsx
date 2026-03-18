@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Search, FileText, MessageSquare } from 'lucide-react';
+import { Search, FileText, MessageSquare, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useApp } from '@/context/AppContext';
 import { useNavigate } from 'react-router-dom';
+import { readFileContent } from '@/lib/fileReader';
 
 export default function PoliciesPage() {
-  const { documents } = useApp();
+  const { documents, addDocument } = useApp();
   const [search, setSearch] = useState('');
+  const [uploading, setUploading] = useState(false);
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const policies = documents.filter(d => ['hr', 'processes', 'overview'].includes(d.category));
   const contracts = documents.filter(d => d.category === 'contracts');
@@ -20,13 +23,39 @@ export default function PoliciesPage() {
     navigate('/');
   };
 
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    for (const file of Array.from(files)) {
+      const content = await readFileContent(file);
+      addDocument({
+        id: crypto.randomUUID(),
+        name: file.name,
+        category: 'processes',
+        uploadDate: new Date().toISOString(),
+        size: file.size,
+        content,
+      });
+    }
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const emptyState = documents.length === 0;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Policies & Contracts</h1>
-        <p className="text-sm text-muted-foreground">Find what was agreed and what the rules are.</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Policies & Contracts</h1>
+          <p className="text-sm text-muted-foreground">Find what was agreed and what the rules are.</p>
+        </div>
+        <Button variant="outline" size="sm" className="text-xs shrink-0" onClick={() => fileInputRef.current?.click()}>
+          <Upload className="w-3 h-3 mr-1.5" />
+          {uploading ? 'Uploading...' : 'Upload document'}
+        </Button>
+        <input ref={fileInputRef} type="file" accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg" multiple onChange={handleUpload} className="hidden" />
       </div>
 
       <div className="relative max-w-md">
@@ -42,7 +71,7 @@ export default function PoliciesPage() {
       {emptyState ? (
         <div className="py-16 text-center">
           <FileText className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">No documents uploaded yet. Complete the setup to add your policies and contracts.</p>
+          <p className="text-sm text-muted-foreground">No documents uploaded yet. Click "Upload document" above to add your policies and contracts.</p>
         </div>
       ) : (
         <div className="grid md:grid-cols-2 gap-8">

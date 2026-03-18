@@ -56,7 +56,7 @@ export default function SetupWizard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addDocument, addEmailSample, completeSetup } = useApp();
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -64,29 +64,29 @@ export default function SetupWizard() {
     const step = steps[currentStep];
     const fileNames: string[] = [];
 
-    setTimeout(() => {
-      Array.from(files).forEach(file => {
-        fileNames.push(file.name);
-        const doc = {
-          id: crypto.randomUUID(),
-          name: file.name,
-          category: step.category,
-          uploadDate: new Date().toISOString(),
-          size: file.size,
-        };
-        if (step.category === 'style') {
-          addEmailSample(doc);
-        } else {
-          addDocument(doc);
-        }
-      });
+    for (const file of Array.from(files)) {
+      const content = await readFileContent(file);
+      fileNames.push(file.name);
+      const doc = {
+        id: crypto.randomUUID(),
+        name: file.name,
+        category: step.category,
+        uploadDate: new Date().toISOString(),
+        size: file.size,
+        content,
+      };
+      if (step.category === 'style') {
+        addEmailSample(doc);
+      } else {
+        addDocument(doc);
+      }
+    }
 
-      setUploadedFiles(prev => ({
-        ...prev,
-        [currentStep]: [...(prev[currentStep] || []), ...fileNames],
-      }));
-      setUploading(false);
-    }, 1200);
+    setUploadedFiles(prev => ({
+      ...prev,
+      [currentStep]: [...(prev[currentStep] || []), ...fileNames],
+    }));
+    setUploading(false);
   };
 
   const handleNext = () => {

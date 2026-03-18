@@ -125,10 +125,11 @@ export default function AskAwarePage() {
     }));
     history.push({ role: 'user', content: question });
 
-    // Build document context from uploaded documents
-    const documentContext = documents.length > 0
-      ? documents.map(d => `Document: "${d.name}" (Category: ${d.category}, Uploaded: ${d.uploadDate})`).join('\n')
-      : '';
+    // Build document context with ACTUAL content from uploaded documents
+    const documentContext = documents
+      .filter(d => d.content)
+      .map(d => `=== Document: "${d.name}" (Category: ${d.category}) ===\n${d.content}`)
+      .join('\n\n');
 
     let assistantContent = '';
 
