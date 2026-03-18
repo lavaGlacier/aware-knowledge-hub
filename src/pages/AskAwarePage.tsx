@@ -18,10 +18,12 @@ const starterQuestions = [
 
 async function streamChat({
   messages,
+  documentContext,
   onDelta,
   onDone,
 }: {
   messages: { role: string; content: string }[];
+  documentContext: string;
   onDelta: (text: string) => void;
   onDone: () => void;
 }) {
@@ -31,7 +33,7 @@ async function streamChat({
       'Content-Type': 'application/json',
       Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
     },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ messages, documentContext }),
   });
 
   if (!resp.ok) {
@@ -100,7 +102,7 @@ async function streamChat({
 export default function AskAwarePage() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const { chatMessages, addChatMessage } = useApp();
+  const { chatMessages, addChatMessage, documents, addKnowledgeGap } = useApp();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const showStarters = chatMessages.length === 0;
 
@@ -123,22 +125,37 @@ export default function AskAwarePage() {
     }));
     history.push({ role: 'user', content: question });
 
+    // Build document context from uploaded documents
+    const documentContext = documents.length > 0
+      ? documents.map(d => `Document: "${d.name}" (Category: ${d.category}, Uploaded: ${d.uploadDate})`).join('\n')
+      : '';
+
     let assistantContent = '';
 
     try {
       await streamChat({
         messages: history,
+        documentContext,
         onDelta: (chunk) => {
           assistantContent += chunk;
-          // We update via a temp mechanism — final message added onDone
         },
         onDone: () => {
           if (assistantContent.trim()) {
+            const isNoAnswer = assistantContent.trim().startsWith('NO_ANSWER:');
+            const displayContent = isNoAnswer
+              ? assistantContent.replace(/^NO_ANSWER:\s*/, '').trim()
+              : assistantContent;
+
             addChatMessage({
               role: 'assistant',
-              content: assistantContent,
-              confidence: 'high',
+              content: displayContent,
+              confidence: isNoAnswer ? 'red' : 'high',
             });
+
+            // Auto-log knowledge gap when AI can't answer from documents
+            if (isNoAnswer) {
+              addKnowledgeGap(question);
+            }
           }
           setIsTyping(false);
         },
@@ -201,9 +218,9 @@ export default function AskAwarePage() {
                         msg.confidence === 'red' && 'bg-red-50 border-red-200 text-red-700'
                       )}
                     >
-                      {msg.confidence === 'high' && 'AI Response'}
-                      {msg.confidence === 'amber' && 'Partial answer'}
-                      {msg.confidence === 'red' && 'Error'}
+                        {msg.confidence === 'high' && 'Verified from documents'}
+                        {msg.confidence === 'amber' && 'Partial answer'}
+                        {msg.confidence === 'red' && 'Not found in documents'}
                     </div>
                   )}
                 </div>
@@ -262,7 +279,7 @@ export default function AskAwarePage() {
           </Button>
         </div>
         <p className="text-[11px] text-muted-foreground text-center">
-          AWARE answers using AI. Responses are generated, not sourced from your documents yet.
+          AWARE only answers from your uploaded documents. Questions without matching documents are logged as knowledge gaps.
         </p>
       </div>
     </div>
