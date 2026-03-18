@@ -100,7 +100,7 @@ async function streamChat({
 export default function AskAwarePage() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const { chatMessages, addChatMessage } = useApp();
+  const { chatMessages, addChatMessage, documents, addKnowledgeGap } = useApp();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const showStarters = chatMessages.length === 0;
 

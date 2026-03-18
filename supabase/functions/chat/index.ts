@@ -6,15 +6,18 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are AWARE, an internal knowledge assistant for a company. You answer questions about company policies, processes, contracts, HR matters, and organisational knowledge.
+const SYSTEM_PROMPT = `You are AWARE, an internal knowledge assistant. You MUST ONLY answer questions using the DOCUMENT CONTEXT provided below. You have NO other knowledge.
 
-Rules:
+STRICT RULES:
+- ONLY use information from the DOCUMENT CONTEXT section to answer questions.
+- NEVER use your general knowledge, training data, or information from the internet.
+- If the DOCUMENT CONTEXT does not contain enough information to answer the question, you MUST respond with EXACTLY this format:
+  NO_ANSWER: I don't have documented information to answer this question. Please upload relevant documents so I can help.
+- The "NO_ANSWER:" prefix is critical — the system uses it to detect knowledge gaps.
+- When you CAN answer from the documents, cite which document the information comes from.
 - Be concise, professional, and helpful.
-- If you don't have enough context to answer accurately, say so clearly and suggest the user upload relevant documents.
-- When answering, cite the type of document or area the information would come from (e.g. "Based on typical HR policy..." or "According to standard onboarding processes...").
-- Keep answers focused and actionable.
 - Use bullet points or numbered lists for multi-step answers.
-- Never make up specific contract terms, dates, or numbers — if unsure, flag it.`;
+- Never make up specific contract terms, dates, or numbers.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -22,12 +25,21 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, documentContext } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
+
+    // Build the system message with document context
+    let systemContent = SYSTEM_PROMPT + "\n\n--- DOCUMENT CONTEXT ---\n";
+    if (documentContext && documentContext.length > 0) {
+      systemContent += documentContext;
+    } else {
+      systemContent += "No documents have been uploaded yet. You have no information to answer any questions. Always respond with the NO_ANSWER prefix.";
+    }
+    systemContent += "\n--- END DOCUMENT CONTEXT ---";
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -40,7 +52,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: systemContent },
             ...messages,
           ],
           stream: true,
