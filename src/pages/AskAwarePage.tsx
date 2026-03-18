@@ -18,10 +18,12 @@ const starterQuestions = [
 
 async function streamChat({
   messages,
+  documentContext,
   onDelta,
   onDone,
 }: {
   messages: { role: string; content: string }[];
+  documentContext: string;
   onDelta: (text: string) => void;
   onDone: () => void;
 }) {
