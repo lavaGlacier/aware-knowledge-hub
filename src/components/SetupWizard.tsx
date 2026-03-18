@@ -4,6 +4,7 @@ import { Upload, Check, FileText, ArrowRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AwareLogoFull } from '@/components/AwareLogo';
 import { useApp } from '@/context/AppContext';
+import { readFileContent } from '@/lib/fileReader';
 
 const steps = [
   {
