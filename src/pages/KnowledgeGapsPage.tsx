@@ -4,6 +4,7 @@ import { AlertTriangle, Upload, FileText, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useApp } from '@/context/AppContext';
 import { cn } from '@/lib/utils';
+import { readFileContent } from '@/lib/fileReader';
 
 export default function KnowledgeGapsPage() {
   const { knowledgeGaps, addDocument, resolveKnowledgeGap } = useApp();
@@ -11,26 +12,27 @@ export default function KnowledgeGapsPage() {
   const [uploadedFileName, setUploadedFileName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     setUploading(true);
-    setTimeout(() => {
-      Array.from(files).forEach(file => {
-        addDocument({
-          id: crypto.randomUUID(),
-          name: file.name,
-          category: 'processes',
-          uploadDate: new Date().toISOString(),
-          size: file.size,
-        });
-        setUploadedFileName(file.name);
+
+    for (const file of Array.from(files)) {
+      const content = await readFileContent(file);
+      addDocument({
+        id: crypto.randomUUID(),
+        name: file.name,
+        category: 'processes',
+        uploadDate: new Date().toISOString(),
+        size: file.size,
+        content,
       });
-      // Resolve all unanswered gaps
-      knowledgeGaps.filter(g => g.status === 'unanswered').forEach(g => resolveKnowledgeGap(g.id));
-      setUploading(false);
-      setTimeout(() => setUploadedFileName(''), 3000);
-    }, 1200);
+      setUploadedFileName(file.name);
+    }
+    // Resolve all unanswered gaps
+    knowledgeGaps.filter(g => g.status === 'unanswered').forEach(g => resolveKnowledgeGap(g.id));
+    setUploading(false);
+    setTimeout(() => setUploadedFileName(''), 3000);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
