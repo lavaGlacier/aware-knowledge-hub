@@ -1,73 +1,75 @@
-# Welcome to your Lovable project
+# AWARE - Adaptive Workplace AI for Reliable Execution
 
-## Project info
+**Live:** [aware-ai-hub.netlify.app](https://aware-ai-hub.netlify.app)
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+Every company runs on institutional knowledge - SOPs, HR policies, client contracts, onboarding checklists, internal processes. That knowledge almost never makes it into the AI tools teams use daily.
 
-## How can I edit this code?
+AWARE fixes that. It layers your company's internal documents on top of any AI model so that every answer is grounded in how *your* org actually operates - not just general internet knowledge.
 
-There are several ways of editing your application.
+Ask it anything. It knows your processes.
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## The problem it solves
 
-Changes made via Lovable will be committed automatically to this repo.
+Generic AI is powerful but context-blind. It doesn't know your refund policy, your client escalation SOP, or how your team handles onboarding. So employees either don't use AI for operational questions, or they get answers that don't match how the company actually works.
 
-**Use your preferred IDE**
+AWARE bridges that gap - coupling general AI intelligence with your internal knowledge base to give context-rich, org-specific answers at every level of the business.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Core features
 
-Follow these steps:
+- **Document-grounded AI chat** - responses pull from your uploaded internal docs first, then fall back to general AI knowledge
+- **Role-based document access** - different employees see different document classifications; sensitive contracts aren't visible to everyone
+- **Multi-document support** - ingest SOPs, HR policies, checklists, contracts, onboarding guides, and more
+- **Org-wide deployment** - built to serve everyone from new hires to leadership, each with access appropriate to their role
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## Tech stack
 
-# Step 3: Install the necessary dependencies.
-npm i
+| Layer | Technology |
+|---|---|
+| Frontend | React + TypeScript + Vite |
+| UI | shadcn/ui + Tailwind CSS |
+| Testing | Playwright + Vitest |
+| Deployment | Netlify |
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+---
+
+## Local setup
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/lavaGlacier/aware-knowledge-hub.git
+cd aware-knowledge-hub
+
+# 2. Install dependencies
+npm install
+
+# 3. Add environment variables
+cp .env .env.local
+# Fill in your AI model API key and any required config
+
+# 4. Start the dev server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+App runs at `http://localhost:8080` by default.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+---
 
-**Use GitHub Codespaces**
+## Roadmap
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+- [ ] Admin panel for document upload and access classification
+- [ ] Multi-model support (swap between AI providers)
+- [ ] Query audit log
+- [ ] Slack / Teams integration
+- [ ] Semantic search and document tagging
 
-## What technologies are used for this project?
+---
 
-This project is built with:
+## Built by
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+[Sparsh Agarwal](https://www.linkedin.com/in/sparsh-illuminate/) - [illuminate.global](https://illuminate.global)
